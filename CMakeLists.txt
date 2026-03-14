@@ -24,6 +24,7 @@ set(SOURCES
     src/game_state.cpp
     src/input.cpp
     src/player.cpp
+    src/frame.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
@@ -37,5 +38,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE  GAME_DEBUG=1)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE GAME_DEBUG=1)
+    target_sources(${PROJECT_NAME} PRIVATE src/debug.cpp)
 endif()

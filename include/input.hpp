@@ -36,4 +36,8 @@ class InputManager {
         std::array<int, ACTION_COUNT> keyBindings;
 };
 
+struct InputFrame {
+    
+};
+
 extern InputManager input;
