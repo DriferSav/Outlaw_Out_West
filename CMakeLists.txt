@@ -3,6 +3,8 @@ project(Outlaw LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build Type" Force)
 endif()
@@ -19,12 +21,15 @@ FetchContent_MakeAvailable(raylib)
 
 set(SOURCES
     src/main.cpp
+    src/game_state.cpp
+    src/input.cpp
+    src/player.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    include
+    ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

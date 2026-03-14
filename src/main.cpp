@@ -1,14 +1,29 @@
-#include "nlohmann/json.hpp"
-#include "raylib.h"
+#include <raylib.h>
+#include <globals.hpp>
+#include <input.hpp>
+#include <game_state.hpp>
+#include <player.hpp>
 
 int main() {
-    InitWindow(800, 450, "Platformer");
+    InitWindow(Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT, "Outlaw Out West");
+
+    SetTargetFPS(60);
+    
+    input.LoadDefaultBindings();
 
     while (!WindowShouldClose()) {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("Works!", 300, 220, 22, WHITE);
-        EndDrawing();
+        // Get Delta Time
+        float dt = GetFrameTime();
+
+        // Update
+        input.Update();
+
+        player.Update(dt);
+
+        updateGameState(Global::currentGameState);
+
+        // Draw
+        drawGameState(Global::currentGameState);
     }
 
     CloseWindow();
