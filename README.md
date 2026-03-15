@@ -1,6 +1,7 @@
-## Building
+## Outlaw Out West
+A simple 2D platformer that uses raylib and nlohmann/json.
  
-**Steps**
+**Build Steps**
  
 ```bash
 git clone https://github.com/DriferSav/Outlaw_Out_West.git

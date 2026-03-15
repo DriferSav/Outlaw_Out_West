@@ -28,6 +28,7 @@ set(SOURCES
     src/player.cpp
     src/hud.cpp
     src/camera.cpp
+    src/audio.cpp
     src/game_state.cpp
 )
 
@@ -38,6 +39,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+
+# Suppress warnings from Raylib's bundled third-party headers (jar_mod.h etc.)
+# SYSTEM tells GCC/Clang to treat these as system headers — warnings are silenced.
+get_target_property(_rl_inc raylib INTERFACE_INCLUDE_DIRECTORIES)
+if(_rl_inc)
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${_rl_inc})
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

@@ -8,6 +8,8 @@
 #include <enemy.hpp>
 #include <hud.hpp>
 #include <camera.hpp>
+#include <audio.hpp>
+#include <debug.hpp>
 #include <player.hpp>
 #include <cmath>
 #include <algorithm>
@@ -73,6 +75,7 @@ namespace {
         Vector2 ws = level.GetWorldSize();
         gameCamera.SetBounds(ws.x, ws.y);
         gameCamera.Reset();
+        audio.PlayMusic(MusicId::GAMEPLAY);
     }
 }
 
@@ -80,6 +83,7 @@ namespace {
 // Dispatch
 // ---------------------------------------------------------------------------
 void updateGameState(Global::GameState& state) {
+    DEBUG_UPDATE();
     switch (state) {
         case Global::GameState::MENU:      updateMenu    (state); break;
         case Global::GameState::OPTIONS:   updateOptions (state); break;
@@ -125,6 +129,7 @@ static constexpr int MENU_COUNT = 4;
 
 void updateMenu(Global::GameState& state) {
     menuCursor = MoveCursor(menuCursor, MENU_COUNT);
+    audio.PlayMusic(MusicId::MENU);
     if (input.IsPressed(Action::ENTER)) {
         switch (menuCursor) {
             case 0: StartPlaying(); state = Global::GameState::PLAYING; break;
@@ -182,6 +187,7 @@ void updateOptions(Global::GameState& state) {
             case 2: c.sfxVolume    = std::fmax(0.f, std::fmin(1.f, c.sfxVolume    + delta)); break;
         }
         SaveConfig("assets/config.json");
+        audio.RefreshVolumes();
     }
     if (input.IsPressed(Action::PAUSE) ||
         (optCursor == 3 && input.IsPressed(Action::ENTER)))
@@ -226,8 +232,16 @@ void updatePlaying(Global::GameState& state) {
     bulletPool.Update(Global::deltaTime, pb, enemyBulletsHit);
     if (enemyBulletsHit > 0) player.TakeDamage(enemyBulletsHit);
     enemyManager.Update(Global::deltaTime);
-    if (player.IsDead()) state = Global::GameState::GAME_OVER;
-    if (player.HasWon()) state = Global::GameState::WIN;
+    if (player.IsDead()) {
+        audio.StopMusic();
+        audio.PlaySFX(SoundId::GAME_OVER);
+        state = Global::GameState::GAME_OVER;
+    }
+    if (player.HasWon()) {
+        audio.StopMusic();
+        audio.PlaySFX(SoundId::WIN);
+        state = Global::GameState::WIN;
+    }
 }
 
 void drawPlaying() {
@@ -237,15 +251,10 @@ void drawPlaying() {
     bulletPool.Draw();
     enemyManager.Draw();
     player.Draw();
+    DEBUG_DRAW_WORLD();
     gameCamera.EndWorldDraw();
     DrawHUD();
-#ifdef GAME_DEBUG
-    DrawText(TextFormat("scale=%.2f  %dx%d  mov=%d",
-        Global::scale, Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT,
-        (int)player.GetMovementState()),
-        (int)Global::letterboxX + 4,
-        Global::SCREEN_HEIGHT - SF(20), SF(13), GREEN);
-#endif
+    DEBUG_DRAW_SCREEN();
 }
 
 // ---------------------------------------------------------------------------

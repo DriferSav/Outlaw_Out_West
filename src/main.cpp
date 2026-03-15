@@ -7,6 +7,7 @@
 #include <camera.hpp>
 #include <game_state.hpp>
 #include <player.hpp>
+#include <audio.hpp>
 #include <cstdlib>  // atoi
 
 // ---------------------------------------------------------------------------
@@ -41,9 +42,12 @@ int main(int argc, char** argv) {
     InitWindow(Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT, "Outlaw Out West");
     SetTargetFPS(60);
     SetExitKey(KEY_NULL);
+    InitAudioDevice();
 
     input.LoadDefaultBindings();
-    gameCamera.Reset(); // sets cam.zoom = Global::scale
+    gameCamera.Reset();
+    audio.Init();
+    audio.PlayMusic(MusicId::MENU); // sets cam.zoom = Global::scale
 
     uint64_t frameId = 0;
 
@@ -52,6 +56,7 @@ int main(int argc, char** argv) {
         Global::deltaTime = dt;
 
         input.Update();
+        audio.Update(dt);
 
         // Snapshot BEFORE update
         {
@@ -82,6 +87,8 @@ int main(int argc, char** argv) {
     }
 
     SaveConfig("assets/config.json");
+    audio.Shutdown();
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
