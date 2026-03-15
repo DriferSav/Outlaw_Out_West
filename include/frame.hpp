@@ -7,7 +7,7 @@
 // frame.hpp intentionally does NOT include input.hpp to keep the
 // include order unambiguous: input.hpp -> frame.hpp -> player.hpp
 enum class Action;
-static constexpr int FRAME_ACTION_COUNT = 7; // must match Action::COUNT
+static constexpr int FRAME_ACTION_COUNT = 8; // must match Action::COUNT
  
 // ---------------------------------------------------------------------------
 // Per-frame snapshots — plain data, safe to memcpy
@@ -23,10 +23,11 @@ struct InputFrame {
     }
 };
  
-// Snapshot of player physics state for one frame.
+// Snapshot of player physics + aim state for one frame.
 struct PlayerFrame {
     Vector2 position = {};
     Vector2 velocity = {};
+    float   aimAngle = 0.0f; // radians — 0 = right, positive = clockwise
     bool    onGround = false;
 };
  

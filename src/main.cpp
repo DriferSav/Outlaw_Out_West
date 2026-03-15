@@ -2,6 +2,7 @@
 #include <globals.hpp>
 #include <input.hpp>
 #include <frame.hpp>
+#include <level.hpp>
 #include <game_state.hpp>
 #include <player.hpp>
  
