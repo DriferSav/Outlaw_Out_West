@@ -23,11 +23,11 @@ void InputManager::Update() {
     }
 }
 
-bool InputManager::IsPressed(Action action) const {
+bool InputManager::IsHeld(Action action) const {
     return states[static_cast<int>(action)].current;
 }
 
-bool InputManager::IsHeld(Action action) const {
+bool InputManager::IsPressed(Action action) const {
     const ActionState& s = states[static_cast<int>(action)];
     return s.current && !s.previous;
 }

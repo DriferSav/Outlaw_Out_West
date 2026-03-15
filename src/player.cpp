@@ -23,8 +23,8 @@ void Player::Draw() {
 
 void Player::HandleInput() {
     float vx = 0.0f;
-    if(input.IsPressed(Action::MOVE_RIGHT)) vx = moveSpeed;
-    else if(input.IsPressed(Action::MOVE_LEFT)) vx = -moveSpeed;
+    if(input.IsHeld(Action::MOVE_RIGHT)) vx = moveSpeed;
+    else if(input.IsHeld(Action::MOVE_LEFT)) vx = -moveSpeed;
 
     velocity.x = vx;
 
@@ -35,7 +35,7 @@ void Player::HandleInput() {
 }
 
 void Player::ApplyGravity(float deltaTime) {
-    position.y += gravity * deltaTime;
+    velocity.y += gravity * deltaTime;
     if(velocity.y > fallSpeed) velocity.y = fallSpeed;
 }
 
