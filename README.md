@@ -36,7 +36,7 @@ cd build
 - LEFT BUMPER - dash
 - RIGHT TRIGGER - shoot
 - A - jump
-- b - interact
-- x - reload
-- y - melee
+- B - interact
+- X - reload
+- Y - melee
 ---
