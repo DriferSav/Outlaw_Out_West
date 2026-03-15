@@ -1,42 +1,45 @@
 #pragma once
 #include <raylib.h>
 #include <vector>
- 
-// ---------------------------------------------------------------------------
-// AABB collision resolution
-//
-// How it works:
-//   After the player moves, we check if their rect overlaps any solid rect.
-//   If it does, we measure penetration depth on X and Y separately, then
-//   push the player out on whichever axis has LESS overlap — because that
-//   axis is almost certainly the one they came from this frame.
-//
-//   Resolving Y last (by calling this after MoveX then MoveY separately, or
-//   by the min-axis logic below) ensures landing/ceiling hits are accurate.
-//
-// Parameters:
-//   position  — top-left of the moving entity (modified in-place)
-//   velocity  — entity velocity (zeroed on the resolved axis)
-//   w, h      — entity dimensions
-//   solid     — the static rectangle to resolve against
-//   onGround  — set to true if entity lands on top of solid (never cleared here)
-// ---------------------------------------------------------------------------
-void ResolveAABB(
-    Vector2&         position,
-    Vector2&         velocity,
-    float            w,
-    float            h,
-    const Rectangle& solid,
-    bool&            onGround
-);
- 
-// Convenience: resolve against every solid in a list.
+
+// Result of resolving a single AABB — tells the caller which faces were hit
+struct ResolveResult {
+    bool hitLeft   = false;
+    bool hitRight  = false;
+    bool hitTop    = false; // landed on top
+    bool hitBottom = false; // bumped ceiling
+};
+
+// Standard four-sided AABB resolution.
+ResolveResult ResolveAABB(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const Rectangle& solid);
+
+// One-sided: only resolve the TOP face.
+// Use when velocity.y > 0 (falling) AND player bottom was above platform last frame.
+// Pass prevBottomY = position.y + h from the frame BEFORE Move() was called.
+bool ResolveOneSided(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const Rectangle& platform,
+    float prevBottomY);
+
+// Resolve against every solid; returns OR of all wall contacts.
+// onGround is set true if any top-face resolution occurred (never cleared here).
 void ResolveAll(
-    Vector2&                      position,
-    Vector2&                      velocity,
-    float                         w,
-    float                         h,
+    Vector2& position, Vector2& velocity,
+    float w, float h,
     const std::vector<Rectangle>& solids,
-    bool&                         onGround
-);
- 
+    bool& onGround,
+    bool& touchingWallLeft,
+    bool& touchingWallRight);
+
+// Resolve one-sided platforms. fallThrough flag skips them entirely.
+void ResolveOneSidedAll(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const std::vector<Rectangle>& platforms,
+    float prevBottomY,
+    bool  fallThrough,
+    bool& onGround);

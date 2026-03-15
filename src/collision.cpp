@@ -1,71 +1,81 @@
 #include <collision.hpp>
 #include <algorithm>
- 
-void ResolveAABB(
-    Vector2&         position,
-    Vector2&         velocity,
-    float            w,
-    float            h,
-    const Rectangle& solid,
-    bool&            onGround)
+
+ResolveResult ResolveAABB(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const Rectangle& solid)
 {
-    // Player's current rect
+    ResolveResult r;
     const Rectangle player { position.x, position.y, w, h };
- 
-    // Early-out: Raylib's CheckCollisionRecs is a fast broadphase check
-    if (!CheckCollisionRecs(player, solid)) return;
- 
-    // ---------- penetration depth on each face ----------
-    // Positive value = overlapping that face. Negative = not touching.
-    //
-    // In Raylib, Y increases downward, so:
-    //   "top"    of solid = solid.y
-    //   "bottom" of solid = solid.y + solid.height
-    //
-    const float overlapLeft   = (player.x + player.width)  - solid.x;           // player right  into solid left
-    const float overlapRight  = (solid.x  + solid.width)   - player.x;          // solid right   into player left
-    const float overlapTop    = (player.y + player.height)  - solid.y;           // player bottom into solid top  → landing
-    const float overlapBottom = (solid.y  + solid.height)   - player.y;          // solid bottom  into player top → ceiling hit
- 
-    // Minimum penetration on each axis
-    const float minX = std::min(overlapLeft,  overlapRight);
-    const float minY = std::min(overlapTop,   overlapBottom);
- 
-    // ---------- resolve on the axis with less penetration ----------
+    if (!CheckCollisionRecs(player, solid)) return r;
+
+    const float oLeft   = (player.x + player.width)  - solid.x;
+    const float oRight  = (solid.x  + solid.width)   - player.x;
+    const float oTop    = (player.y + player.height)  - solid.y;
+    const float oBottom = (solid.y  + solid.height)   - player.y;
+
+    const float minX = std::min(oLeft, oRight);
+    const float minY = std::min(oTop,  oBottom);
+
     if (minX < minY) {
-        // --- Horizontal resolution ---
-        if (overlapLeft < overlapRight) {
-            position.x -= overlapLeft;   // push player left (came from left)
-        } else {
-            position.x += overlapRight;  // push player right (came from right)
-        }
-        velocity.x = 0.0f;
- 
+        if (oLeft < oRight) { position.x -= oLeft;   velocity.x = 0.0f; r.hitLeft  = true; }
+        else                { position.x += oRight;  velocity.x = 0.0f; r.hitRight = true; }
     } else {
-        // --- Vertical resolution ---
-        if (overlapTop < overlapBottom) {
-            // Player's bottom entered solid's top → player landed on platform
-            position.y -= overlapTop;
-            velocity.y  = 0.0f;
-            onGround    = true;          // caller must clear this before calling ResolveAll
-        } else {
-            // Player's top entered solid's bottom → player hit a ceiling
-            position.y += overlapBottom;
-            if (velocity.y < 0.0f) velocity.y = 0.0f;
-        }
+        if (oTop < oBottom) { position.y -= oTop;    velocity.y = 0.0f; r.hitTop    = true; }
+        else                { position.y += oBottom; if (velocity.y < 0.0f) velocity.y = 0.0f; r.hitBottom = true; }
     }
+    return r;
 }
- 
+
+bool ResolveOneSided(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const Rectangle& platform,
+    float prevBottomY)
+{
+    // Only collide if falling and previously above the platform
+    if (velocity.y <= 0.0f) return false;
+    if (prevBottomY > platform.y) return false; // was already below top edge
+
+    const Rectangle player { position.x, position.y, w, h };
+    if (!CheckCollisionRecs(player, platform)) return false;
+
+    const float oTop = (player.y + player.height) - platform.y;
+    if (oTop <= 0.0f) return false;
+
+    position.y -= oTop;
+    velocity.y  = 0.0f;
+    return true;
+}
+
 void ResolveAll(
-    Vector2&                      position,
-    Vector2&                      velocity,
-    float                         w,
-    float                         h,
+    Vector2& position, Vector2& velocity,
+    float w, float h,
     const std::vector<Rectangle>& solids,
-    bool&                         onGround)
+    bool& onGround,
+    bool& touchingWallLeft,
+    bool& touchingWallRight)
 {
     for (const Rectangle& solid : solids) {
-        ResolveAABB(position, velocity, w, h, solid, onGround);
+        ResolveResult r = ResolveAABB(position, velocity, w, h, solid);
+        if (r.hitTop)   onGround         = true;
+        if (r.hitLeft)  touchingWallRight = true; // player came from left, hit right side of player
+        if (r.hitRight) touchingWallLeft  = true;
     }
 }
- 
+
+void ResolveOneSidedAll(
+    Vector2& position, Vector2& velocity,
+    float w, float h,
+    const std::vector<Rectangle>& platforms,
+    float prevBottomY,
+    bool  fallThrough,
+    bool& onGround)
+{
+    if (fallThrough) return;
+    for (const Rectangle& p : platforms) {
+        if (ResolveOneSided(position, velocity, w, h, p, prevBottomY))
+            onGround = true;
+    }
+}

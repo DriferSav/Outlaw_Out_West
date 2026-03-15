@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <globals.hpp>
+#include <config.hpp>
 #include <input.hpp>
 #include <frame.hpp>
 #include <level.hpp>
@@ -9,11 +10,9 @@
 int main() {
     InitWindow(Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT, "Outlaw Out West");
     SetTargetFPS(60);
+    SetExitKey(KEY_NULL); // ESC handled by Action::PAUSE, not Raylib
 
-    // FIX: Raylib binds ESC to WindowShouldClose() by default.
-    // Clearing the exit key lets us handle ESC ourselves via Action::PAUSE.
-    SetExitKey(KEY_NULL);
-
+    LoadConfig("assets/config.json");
     input.LoadDefaultBindings();
 
     uint64_t frameId = 0;
@@ -24,21 +23,27 @@ int main() {
 
         input.Update();
 
+        // Snapshot BEFORE update
         {
-            FrameState frame;
-            frame.frameId   = frameId++;
-            frame.deltaTime = dt;
-            frame.input     = input.GetFrame();
-            frame.player    = player.GetFrame();
-            frameHistory.Push(frame);
+            FrameState fs;
+            fs.frameId   = frameId++;
+            fs.deltaTime = dt;
+            fs.input     = input.GetFrame();
+            fs.player    = player.GetFrame();
+            frameHistory.Push(fs);
         }
 
-        player.Update(dt);
-        updateGameState(Global::currentGameState);
+        // Player physics update only while actively playing
+        if (Global::currentGameState == Global::GameState::PLAYING) {
+            player.Update(dt);
+            Global::gameData.playtime += dt;
+        }
 
-        drawGameState(Global::currentGameState);
+        updateGameState(Global::currentGameState);
+        drawGameState  (Global::currentGameState);
     }
 
+    SaveConfig("assets/config.json");
     CloseWindow();
     return 0;
 }

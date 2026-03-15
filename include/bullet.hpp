@@ -1,52 +1,35 @@
 #pragma once
 #include <raylib.h>
- 
-// ---------------------------------------------------------------------------
-// Bullet — one projectile slot in the pool
-// ---------------------------------------------------------------------------
+
 struct Bullet {
     Vector2 position  = {};
     Vector2 velocity  = {};
-    float   timeLeft  = 0.0f; // seconds until auto-despawn
+    float   timeLeft  = 0.0f;
     bool    active    = false;
+    bool    fromEnemy = false; // enemy bullets check player; player bullets check enemies
 };
- 
-// ---------------------------------------------------------------------------
-// BulletPool — fixed-size object pool; no heap allocation after startup
-//
-// Usage:
-//   bulletPool.Spawn(player.GunBarrelTip(), player.GetAimAngle());
-//   bulletPool.Update(dt);   // in game update
-//   bulletPool.Draw();        // in game draw
-// ---------------------------------------------------------------------------
+
 class BulletPool {
 public:
-    static constexpr int   MAX_BULLETS    = 32;
-    static constexpr float BULLET_SPEED   = 650.0f;  // px/s
-    static constexpr float BULLET_LIFETIME= 1.8f;    // seconds
-    static constexpr float BULLET_RADIUS  = 4.0f;    // for collision + draw
- 
-    // Fire a bullet from pos in direction angle (radians).
-    // Silently drops if pool is full.
-    void Spawn(Vector2 pos, float angle);
- 
-    // Move all active bullets; deactivate on timeout or level collision.
-    void Update(float deltaTime);
- 
-    // Draw all active bullets.
-    void Draw() const;
- 
-    // Kill all bullets (call on level reload).
+    static constexpr int   MAX_BULLETS    = 64;
+    static constexpr float BULLET_SPEED   = 650.0f;
+    static constexpr float BULLET_LIFETIME= 1.8f;
+    static constexpr float BULLET_RADIUS  = 4.0f;
+
+    void Spawn     (Vector2 pos, float angle);            // player bullet
+    void SpawnEnemy(Vector2 pos, float angle, float spd); // enemy bullet (arc already baked into angle)
+
+    // Returns true if any player bullet hit an enemy (removes bullet + damages enemy)
+    // Returns true if any enemy bullet hit the player rect (removes bullet, caller handles damage)
+    bool Update(float dt, Rectangle playerBounds, int& enemyBulletsHit);
+
+    void Draw()   const;
     void Clear();
- 
-    int ActiveCount() const;
- 
+    int  ActiveCount() const;
+
 private:
     Bullet bullets[MAX_BULLETS];
- 
-    // Returns index of first inactive slot, or -1 if pool full.
-    int FindFree() const;
+    int    FindFree() const;
 };
- 
+
 extern BulletPool bulletPool;
- 

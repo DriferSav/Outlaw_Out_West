@@ -1,99 +1,36 @@
 {
-  "name": "Level 01",
-  "spawn": {
-    "x": 100,
-    "y": 320
-  },
+  "name": "Level 01 — The Gulch",
+  "spawn": { "x": 60.0, "y": 340.0 },
+
   "objects": [
-    {
-      "comment": "ground floor",
-      "x": 0,
-      "y": 400,
-      "width": 800,
-      "height": 50,
-      "color": [
-        139,
-        90,
-        43,
-        255
-      ]
-    },
-    {
-      "comment": "left low platform",
-      "x": 50,
-      "y": 310,
-      "width": 160,
-      "height": 20,
-      "color": [
-        100,
-        140,
-        60,
-        255
-      ]
-    },
-    {
-      "comment": "mid platform",
-      "x": 280,
-      "y": 270,
-      "width": 180,
-      "height": 20,
-      "color": [
-        100,
-        140,
-        60,
-        255
-      ]
-    },
-    {
-      "comment": "right platform",
-      "x": 530,
-      "y": 240,
-      "width": 160,
-      "height": 20,
-      "color": [
-        100,
-        140,
-        60,
-        255
-      ]
-    },
-    {
-      "comment": "high left platform",
-      "x": 100,
-      "y": 190,
-      "width": 130,
-      "height": 20,
-      "color": [
-        100,
-        140,
-        60,
-        255
-      ]
-    },
-    {
-      "comment": "left wall",
-      "x": 0,
-      "y": 0,
-      "width": 20,
-      "height": 400,
-      "color": [
-        80,
-        60,
-        40,
-        255
-      ]
-    },
-    {
-      "comment": "right wall",
-      "x": 780,
-      "y": 0,
-      "width": 20,
-      "height": 400,
-      "color": [
-        80,
-        60,
-        40,
-        255
+    { "type": "solid",     "x": 0,   "y": 400, "width": 800, "height": 50,  "color": [100, 75, 50, 255] },
+    { "type": "solid",     "x": 0,   "y": 0,   "width": 20,  "height": 400, "color": [80,  60, 40, 255] },
+    { "type": "solid",     "x": 780, "y": 0,   "width": 20,  "height": 400, "color": [80,  60, 40, 255] },
+    { "type": "one_sided", "x": 80,  "y": 320, "width": 140, "height": 12,  "color": [80, 110, 55, 255] },
+    { "type": "one_sided", "x": 320, "y": 280, "width": 160, "height": 12,  "color": [80, 110, 55, 255] },
+    { "type": "one_sided", "x": 560, "y": 240, "width": 140, "height": 12,  "color": [80, 110, 55, 255] },
+    { "type": "solid",     "x": 200, "y": 340, "width": 80,  "height": 60,  "color": [90,  70, 50, 255] },
+    { "type": "stair",     "x": 440, "y": 320, "width": 120, "height": 80,  "color": [90,  70, 50, 255], "facing": "right" },
+    { "type": "hostile",   "x": 300, "y": 390, "width": 60,  "height": 10,  "damage": 1, "texture": "lava",  "color": [220, 70, 20, 255] },
+    { "type": "hazard",    "x": 450, "y": 388, "width": 16,  "height": 16,  "damage": 1, "facing": "up",    "texture": "spike" },
+    { "type": "hazard",    "x": 474, "y": 388, "width": 16,  "height": 16,  "damage": 1, "facing": "up",    "texture": "spike" },
+    { "type": "gate",      "id": "gate_exit", "x": 740, "y": 340, "width": 20, "height": 60, "key_id": "bronze_key", "color": [180, 130, 20, 255] }
+  ],
+
+  "items": [
+    { "type": "key", "id": "bronze_key", "x": 90, "y": 300, "color": [220, 170, 30, 255] }
+  ],
+
+  "enemies": [
+    { "type": "patrol",  "x": 220, "y": 368, "patrol_left": 210, "patrol_right": 370, "speed": 70,  "hp": 2, "damage": 1 },
+    { "type": "jumper",  "x": 400, "y": 368, "jump_interval": 2.5, "jump_force": 360, "hp": 2, "damage": 1 },
+    { "type": "thrower", "x": 620, "y": 368, "throw_interval": 3.0, "projectile_speed": 160, "arc_height": 90, "hp": 3, "damage": 1, "facing": "left" },
+    { "type": "flyer",   "x": 300, "y": 180, "speed": 65, "hp": 2, "damage": 1,
+      "path": [
+        { "x": 200, "y": 180 },
+        { "x": 500, "y": 140 },
+        { "x": 600, "y": 220 },
+        { "x": 350, "y": 200 }
       ]
     }
   ]
