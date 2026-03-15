@@ -1,8 +1,8 @@
 {
   "audio": {
     "master_volume": 1.0,
-    "music_volume": 0.75,
-    "sfx_volume": 1.0
+    "music_volume": 0.8499999642372131,
+    "sfx_volume": 0.949999988079071
   },
   "window": {
     "height": 900,
