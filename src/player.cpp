@@ -8,16 +8,18 @@
 #include <enemy.hpp>
 #include <player.hpp>
 #include <camera.hpp>
+#include <audio.hpp>
+#include <debug.hpp>
 #include <cmath>
 #include <algorithm>
 
 Player player;
 
 Player::Player() {
-    position    = { 160.0f, 480.0f }; // overridden by level.GetSpawn() in StartPlaying
+    position    = { 160.0f, 480.0f };
     velocity    = {};
     hp          = MAX_HP;
-    spawnGrace  = 0.5f; // 0.5s invincibility window on spawn — prevents instant death
+    spawnGrace  = 0.5f;
     isDead      = false;
     wonLevel    = false;
 }
@@ -38,13 +40,14 @@ void Player::TakeDamage(int amount) {
     if (spawnGrace > 0.0f || invTimer > 0.0f || isDead) return;
     hp -= amount;
     invTimer = INV_DURATION;
-    if (hp <= 0) { hp = 0; isDead = true; }
+    if (hp <= 0) { hp = 0; isDead = true; audio.PlaySFX(SoundId::PLAYER_DEATH); }
+    else         { audio.PlaySFX(SoundId::PLAYER_HIT); }
 }
 
 void Player::CollectItems(const std::vector<std::string>& ids) {
     for (const auto& id : ids) {
         Global::gameData.inventory.push_back(id);
-        // Auto-try unlocking any gate that wants this key
+        audio.PlaySFX(SoundId::KEY_PICKUP);
         level.TryUnlockGate(id);
     }
 }
@@ -55,18 +58,21 @@ void Player::CollectItems(const std::vector<std::string>& ids) {
 void Player::Update(float dt) {
     if (isDead) return;
     prevBottomY = position.y + height;
+    const bool wasOnGround = onGround;
     UpdateTimers(dt);
     UpdateAim();
     HandleInput();
     ApplyGravity(dt);
     Move(dt);
     Collide();
+    if (onGround && !wasOnGround && velocity.y >= 0.0f)
+        audio.PlaySFX(SoundId::LAND);
     CheckHazards();
     UpdateStates();
 }
 
 void Player::UpdateTimers(float dt) {
-    if (spawnGrace  > 0.0f) spawnGrace   -= dt;
+    if (spawnGrace   > 0.0f) spawnGrace   -= dt;
     if (invTimer     > 0.0f) invTimer     -= dt;
     if (shootCooldown> 0.0f) shootCooldown -= dt;
     if (reloadTimer  > 0.0f) {
@@ -80,13 +86,13 @@ void Player::UpdateTimers(float dt) {
 }
 
 // ---------------------------------------------------------------------------
-// Aim  — stick locks angle, mouse only updates when mouse is active device
+// Aim
 // ---------------------------------------------------------------------------
 void Player::UpdateAim() {
-    const Vector2 stick     = input.GetRightStick();
+    const Vector2 stick      = input.GetRightStick();
     const Vector2 mouseDelta = GetMouseDelta();
-    const bool stickActive  = stick.x != 0.0f || stick.y != 0.0f;
-    const bool mouseMoved   = fabsf(mouseDelta.x) > 0.5f || fabsf(mouseDelta.y) > 0.5f;
+    const bool stickActive   = stick.x != 0.0f || stick.y != 0.0f;
+    const bool mouseMoved    = fabsf(mouseDelta.x) > 0.5f || fabsf(mouseDelta.y) > 0.5f;
 
     if (stickActive) {
         aimAngle      = atan2f(stick.y, stick.x);
@@ -97,8 +103,6 @@ void Player::UpdateAim() {
 
     if (lastAimDevice == AimDevice::MOUSE) {
         Vector2 chest      = ChestCenter(position, width, height);
-        // Convert screen-space cursor to world-space so aim is correct
-        // when the camera is scrolled away from the origin
         Vector2 mouseWorld = gameCamera.ScreenToWorld(GetMousePosition());
         aimAngle = atan2f(mouseWorld.y - chest.y, mouseWorld.x - chest.x);
     }
@@ -110,10 +114,8 @@ void Player::UpdateAim() {
 // Input
 // ---------------------------------------------------------------------------
 void Player::HandleInput() {
-    // ---- Fall-through: hold DOWN while on a one-sided platform ----
     fallThrough = input.IsHeld(Action::MOVE_DOWN) && onGround;
 
-    // ---- Horizontal movement (locked during wall jump) ----
     if (wallJumpLock <= 0.0f && dashTimer <= 0.0f) {
         float vx = 0.0f;
         if (input.IsHeld(Action::MOVE_RIGHT)) vx =  moveSpeed;
@@ -126,14 +128,14 @@ void Player::HandleInput() {
     // ---- Dash ----
     const bool canDash = dashTimer <= 0.0f && dashCooldown <= 0.0f;
     if (canDash && input.IsPressed(Action::DASH)) {
-        // Dash in facing direction (or stick direction)
         const Vector2 ls = input.GetLeftStick();
         float dir = (fabsf(ls.x) > 0.1f) ? (ls.x > 0 ? 1.0f : -1.0f)
                                            : (facingLeft ? -1.0f : 1.0f);
-        dashDirX      = dir;
-        dashTimer     = DASH_DURATION;
-        dashCooldown  = DASH_COOLDOWN;
-        velocity.y    = 0.0f; // cancel vertical during dash
+        dashDirX     = dir;
+        dashTimer    = DASH_DURATION;
+        dashCooldown = DASH_COOLDOWN;
+        velocity.y   = 0.0f;
+        audio.PlaySFX(SoundId::DASH);
     }
     if (dashTimer > 0.0f) {
         velocity.x = dashDirX * DASH_SPEED;
@@ -144,9 +146,8 @@ void Player::HandleInput() {
     const bool onWall = !onGround && (
         (touchingWallLeft  && !facingLeft) ||
         (touchingWallRight &&  facingLeft));
-    if (onWall && velocity.y > WALL_SLIDE_SPEED) {
+    if (onWall && velocity.y > WALL_SLIDE_SPEED)
         velocity.y = WALL_SLIDE_SPEED;
-    }
 
     // ---- Jump cut ----
     if (jumpHeld && velocity.y < 0.0f && input.IsReleased(Action::JUMP)) {
@@ -165,18 +166,22 @@ void Player::HandleInput() {
         velocity.y = -JUMP_FORCE;
         jumpHeld   = true;
         onGround   = false;
+        audio.PlaySFX(SoundId::JUMP);
     } else if (wallJump) {
         float pushDir = touchingWallLeft ? 1.0f : -1.0f;
-        velocity.x    = pushDir * WALL_JUMP_VX;
-        velocity.y    = -WALL_JUMP_VY;
-        jumpHeld      = true;
-        wallJumpLock  = WALL_JUMP_LOCK_TIME;
-        onGround      = false;
+        velocity.x   = pushDir * WALL_JUMP_VX;
+        velocity.y   = -WALL_JUMP_VY;
+        jumpHeld     = true;
+        wallJumpLock = WALL_JUMP_LOCK_TIME;
+        onGround     = false;
+        audio.PlaySFX(SoundId::JUMP);
     }
 
     // ---- Reload ----
-    if (input.IsPressed(Action::RELOAD) && ammo < MAX_AMMO && reloadTimer <= 0.0f)
+    if (input.IsPressed(Action::RELOAD) && ammo < MAX_AMMO && reloadTimer <= 0.0f) {
         reloadTimer = RELOAD_TIME;
+        audio.PlaySFX(SoundId::RELOAD);
+    }
 
     // ---- Shoot ----
     const bool buttonShoot  = input.IsPressed(Action::SHOOT);
@@ -186,27 +191,24 @@ void Player::HandleInput() {
     {
         bulletPool.Spawn(GunBarrelTip(), aimAngle);
         shootCooldown = SHOOT_COOLDOWN;
+        audio.PlaySFX(SoundId::SHOOT);
         ammo--;
-        if (ammo == 0) reloadTimer = RELOAD_TIME; // auto-reload on empty
+        if (ammo == 0) { reloadTimer = RELOAD_TIME; audio.PlaySFX(SoundId::RELOAD); }
     }
 
     // ---- Melee ----
     if (input.IsPressed(Action::MELEE) && meleeTimer <= 0.0f) {
         meleeTimer = MELEE_DURATION;
-        // Sweep a hitbox in front of the player
+        audio.PlaySFX(SoundId::MELEE);
         Vector2 tip = GunBarrelTip();
         enemyManager.HitAt(tip, MELEE_RANGE, 2);
     }
 
-    // ---- Interact — collect items AND try exit gate ----
+    // ---- Interact ----
     if (input.IsPressed(Action::INTERACT) && level.IsLoaded()) {
         Rectangle pb = { position.x, position.y, width, height };
-
-        // 1. Collect nearby key items
         auto collected = level.CollectItems(pb);
         CollectItems(collected);
-
-        // 2. Try to use the exit gate — triggers win if player has the key
         if (level.TryInteractGate(pb, Global::gameData.inventory))
             wonLevel = true;
     }
@@ -242,14 +244,12 @@ void Player::Collide() {
                            prevBottomY, fallThrough, onGround);
     }
 
-    // World edges — clamp to level world size, not screen size
     const float worldW = level.IsLoaded() ? level.GetWorldSize().x : (float)Global::SCREEN_WIDTH;
     const float worldH = level.IsLoaded() ? level.GetWorldSize().y : (float)Global::SCREEN_HEIGHT;
 
-    if (position.x < 0.0f)               { position.x = 0.0f;           velocity.x = 0.0f; }
-    if (position.x > worldW - width)      { position.x = worldW - width;  velocity.x = 0.0f; }
+    if (position.x < 0.0f)          { position.x = 0.0f;          velocity.x = 0.0f; }
+    if (position.x > worldW - width) { position.x = worldW - width; velocity.x = 0.0f; }
 
-    // Death: fell off the bottom of the world
     if (spawnGrace <= 0.0f && position.y > worldH + 120.0f) isDead = true;
 }
 
@@ -266,20 +266,20 @@ void Player::CheckHazards() {
 // State derivation
 // ---------------------------------------------------------------------------
 void Player::UpdateStates() {
-    if      (onGround)              environmentState = PlayerEnvironmentState::ON_GROUND;
-    else if (velocity.y < 0.0f)    environmentState = PlayerEnvironmentState::RISING_IN_AIR;
-    else                            environmentState = PlayerEnvironmentState::FALLING_IN_AIR;
+    if      (onGround)           environmentState = PlayerEnvironmentState::ON_GROUND;
+    else if (velocity.y < 0.0f) environmentState = PlayerEnvironmentState::RISING_IN_AIR;
+    else                         environmentState = PlayerEnvironmentState::FALLING_IN_AIR;
 
-    if (dashTimer > 0.0f)                                              movementState = PlayerMovementState::DASH;
-    else if (!onGround && (touchingWallLeft || touchingWallRight))     movementState = PlayerMovementState::WALL_SLIDE;
-    else if (environmentState != PlayerEnvironmentState::ON_GROUND)    movementState = PlayerMovementState::JUMP;
-    else if (fabsf(velocity.x) > moveSpeed * 0.8f)                    movementState = PlayerMovementState::RUN;
-    else if (fabsf(velocity.x) > 2.0f)                                movementState = PlayerMovementState::WALK;
-    else                                                               movementState = PlayerMovementState::IDLE;
+    if      (dashTimer > 0.0f)                                          movementState = PlayerMovementState::DASH;
+    else if (!onGround && (touchingWallLeft || touchingWallRight))      movementState = PlayerMovementState::WALL_SLIDE;
+    else if (environmentState != PlayerEnvironmentState::ON_GROUND)     movementState = PlayerMovementState::JUMP;
+    else if (fabsf(velocity.x) > moveSpeed * 0.8f)                     movementState = PlayerMovementState::RUN;
+    else if (fabsf(velocity.x) > 2.0f)                                 movementState = PlayerMovementState::WALK;
+    else                                                                movementState = PlayerMovementState::IDLE;
 
-    if      (meleeTimer   > 0.0f)                          interactionState = PlayerInteractionState::MELEE;
-    else if (shootCooldown> SHOOT_COOLDOWN * 0.6f)         interactionState = PlayerInteractionState::ATTACK;
-    else                                                   interactionState = PlayerInteractionState::IDLE;
+    if      (meleeTimer    > 0.0f)                   interactionState = PlayerInteractionState::MELEE;
+    else if (shootCooldown > SHOOT_COOLDOWN * 0.6f)  interactionState = PlayerInteractionState::ATTACK;
+    else                                             interactionState = PlayerInteractionState::IDLE;
 }
 
 // ---------------------------------------------------------------------------
@@ -289,14 +289,12 @@ void Player::Draw() const {
     const Vector2 chest = ChestCenter(position, width, height);
     const Vector2 tip   = GunBarrelTip();
 
-    // Invincibility flicker
     if (invTimer > 0.0f && ((int)(invTimer * 12) % 2 == 0)) return;
 
-    // Body color by state
     Color body;
     switch (movementState) {
-        case PlayerMovementState::DASH:       body = {  80, 180, 255, 255 }; break; // cyan dash
-        case PlayerMovementState::WALL_SLIDE: body = { 160,  80, 220, 255 }; break; // purple wall
+        case PlayerMovementState::DASH:       body = {  80, 180, 255, 255 }; break;
+        case PlayerMovementState::WALL_SLIDE: body = { 160,  80, 220, 255 }; break;
         case PlayerMovementState::JUMP:       body = { 200,  60, 180, 255 }; break;
         case PlayerMovementState::RUN:        body = { 240,  70,  50, 255 }; break;
         case PlayerMovementState::WALK:       body = { 210,  55,  55, 255 }; break;
@@ -307,20 +305,18 @@ void Player::Draw() const {
 
     DrawRectangle((int)position.x, (int)position.y, (int)width, (int)height, body);
 
-    // Hat
     const int lean = (movementState == PlayerMovementState::RUN) ? (facingLeft ? -2 : 2) : 0;
     const int hx   = (int)position.x - 4 + lean;
     const int hy   = (int)position.y - 6;
-    DrawRectangle(hx,     hy+2, (int)width+8, 4,  DARKBROWN);
-    DrawRectangle(hx+6,   hy-8, (int)width-4, 10, DARKBROWN);
+    DrawRectangle(hx,   hy+2, (int)width+8, 4,  DARKBROWN);
+    DrawRectangle(hx+6, hy-8, (int)width-4, 10, DARKBROWN);
 
-    // Melee arc
     if (meleeTimer > 0.0f) {
         float pct = meleeTimer / MELEE_DURATION;
-        DrawCircleLines((int)chest.x, (int)chest.y, MELEE_RANGE * (1.0f - pct + 0.4f), {255,255,100,160});
+        DrawCircleLines((int)chest.x, (int)chest.y,
+                        MELEE_RANGE * (1.0f - pct + 0.4f), {255,255,100,160});
     }
 
-    // Gun
     DrawLineEx(chest, tip, GUN_THICKNESS, DARKGRAY);
     DrawCircleV(tip, 3.5f, GRAY);
     if (interactionState == PlayerInteractionState::ATTACK)

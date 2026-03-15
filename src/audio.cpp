@@ -1,6 +1,7 @@
 #include <audio.hpp>
 #include <globals.hpp>
 #include <raylib.h>
+#include <string>
 
 AudioManager audio;
 
@@ -44,16 +45,29 @@ float AudioManager::MusicVolume() const {
 // Init — load everything that exists, skip the rest
 // ---------------------------------------------------------------------------
 void AudioManager::Init() {
+    const std::string appDir = GetApplicationDirectory();
+
+    // Print the directory we're searching so you can verify the path
+    TraceLog(LOG_INFO, "AudioManager: appDir = %s", appDir.c_str());
+
     for (int i = 0; i < SFX_COUNT; i++) {
-        if (FileExists(SFX_PATHS[i])) {
-            sounds[i]    = LoadSound(SFX_PATHS[i]);
+        std::string fullPath = appDir + SFX_PATHS[i];
+        bool exists = FileExists(fullPath.c_str());
+        TraceLog(LOG_INFO, "SFX[%d] %s -> %s",
+            i, fullPath.c_str(), exists ? "FOUND" : "MISSING");
+        if (exists) {
+            sounds[i]    = LoadSound(fullPath.c_str());
             sfxLoaded[i] = true;
             SetSoundVolume(sounds[i], SFXVolume());
         }
     }
     for (int i = 0; i < MUSIC_COUNT; i++) {
-        if (FileExists(MUSIC_PATHS[i])) {
-            tracks[i]      = LoadMusicStream(MUSIC_PATHS[i]);
+        std::string fullPath = appDir + MUSIC_PATHS[i];
+        bool exists = FileExists(fullPath.c_str());
+        TraceLog(LOG_INFO, "MUSIC[%d] %s -> %s",
+            i, fullPath.c_str(), exists ? "FOUND" : "MISSING");
+        if (exists) {
+            tracks[i]      = LoadMusicStream(fullPath.c_str());
             musicLoaded[i] = true;
             SetMusicVolume(tracks[i], MusicVolume());
         }
@@ -87,7 +101,9 @@ void AudioManager::PlaySFX(SoundId id) {
     int idx = static_cast<int>(id);
     if (idx < 0 || idx >= SFX_COUNT) return;
     if (!sfxLoaded[idx]) return;
-    SetSoundVolume(sounds[idx], SFXVolume());
+    float vol = SFXVolume();
+    TraceLog(LOG_INFO, "PlaySFX[%d] vol=%.2f", idx, vol);
+    SetSoundVolume(sounds[idx], vol);
     PlaySound(sounds[idx]);
 }
 

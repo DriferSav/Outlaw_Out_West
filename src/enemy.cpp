@@ -3,6 +3,7 @@
 #include <level.hpp>
 #include <collision.hpp>
 #include <globals.hpp>
+#include <audio.hpp>
 #include <cmath>
 #include <algorithm>
 
@@ -158,7 +159,12 @@ bool EnemyManager::HitAt(Vector2 pos, float radius, int amount) {
         if (CheckCollisionCircleRec(pos, radius, e.Bounds())) {
             e.hp -= amount;
             e.invTimer = Enemy::INV_DURATION;
-            if (e.hp <= 0) e.active = false;
+            if (e.hp <= 0) {
+                e.active = false;
+                audio.PlaySFX(SoundId::ENEMY_DEATH);
+            } else {
+                audio.PlaySFX(SoundId::ENEMY_HIT);
+            }
             return true;
         }
     }
