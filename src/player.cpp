@@ -7,15 +7,19 @@
 #include <bullet.hpp>
 #include <enemy.hpp>
 #include <player.hpp>
+#include <camera.hpp>
 #include <cmath>
 #include <algorithm>
 
 Player player;
 
 Player::Player() {
-    position = { 100.0f, 300.0f };
-    velocity = {};
-    hp = MAX_HP;
+    position    = { 160.0f, 480.0f }; // overridden by level.GetSpawn() in StartPlaying
+    velocity    = {};
+    hp          = MAX_HP;
+    spawnGrace  = 0.5f; // 0.5s invincibility window on spawn — prevents instant death
+    isDead      = false;
+    wonLevel    = false;
 }
 
 PlayerFrame Player::GetFrame() const {
@@ -31,7 +35,7 @@ Vector2 Player::GunBarrelTip() const {
 // Public
 // ---------------------------------------------------------------------------
 void Player::TakeDamage(int amount) {
-    if (invTimer > 0.0f || isDead) return;
+    if (spawnGrace > 0.0f || invTimer > 0.0f || isDead) return;
     hp -= amount;
     invTimer = INV_DURATION;
     if (hp <= 0) { hp = 0; isDead = true; }
@@ -62,6 +66,7 @@ void Player::Update(float dt) {
 }
 
 void Player::UpdateTimers(float dt) {
+    if (spawnGrace  > 0.0f) spawnGrace   -= dt;
     if (invTimer     > 0.0f) invTimer     -= dt;
     if (shootCooldown> 0.0f) shootCooldown -= dt;
     if (reloadTimer  > 0.0f) {
@@ -91,9 +96,11 @@ void Player::UpdateAim() {
     }
 
     if (lastAimDevice == AimDevice::MOUSE) {
-        Vector2 chest = ChestCenter(position, width, height);
-        Vector2 mouse = GetMousePosition();
-        aimAngle = atan2f(mouse.y - chest.y, mouse.x - chest.x);
+        Vector2 chest      = ChestCenter(position, width, height);
+        // Convert screen-space cursor to world-space so aim is correct
+        // when the camera is scrolled away from the origin
+        Vector2 mouseWorld = gameCamera.ScreenToWorld(GetMousePosition());
+        aimAngle = atan2f(mouseWorld.y - chest.y, mouseWorld.x - chest.x);
     }
 
     facingLeft = cosf(aimAngle) < 0.0f;
@@ -191,11 +198,17 @@ void Player::HandleInput() {
         enemyManager.HitAt(tip, MELEE_RANGE, 2);
     }
 
-    // ---- Interact (pick up items, talk to NPCs) ----
+    // ---- Interact — collect items AND try exit gate ----
     if (input.IsPressed(Action::INTERACT) && level.IsLoaded()) {
         Rectangle pb = { position.x, position.y, width, height };
+
+        // 1. Collect nearby key items
         auto collected = level.CollectItems(pb);
         CollectItems(collected);
+
+        // 2. Try to use the exit gate — triggers win if player has the key
+        if (level.TryInteractGate(pb, Global::gameData.inventory))
+            wonLevel = true;
     }
 }
 
@@ -229,13 +242,15 @@ void Player::Collide() {
                            prevBottomY, fallThrough, onGround);
     }
 
-    // Screen edges
-    if (position.x < 0.0f) { position.x = 0.0f; velocity.x = 0.0f; }
-    const float rightEdge = (float)Global::SCREEN_WIDTH - width;
-    if (position.x > rightEdge) { position.x = rightEdge; velocity.x = 0.0f; }
+    // World edges — clamp to level world size, not screen size
+    const float worldW = level.IsLoaded() ? level.GetWorldSize().x : (float)Global::SCREEN_WIDTH;
+    const float worldH = level.IsLoaded() ? level.GetWorldSize().y : (float)Global::SCREEN_HEIGHT;
 
-    // Death: fell off bottom
-    if (position.y > (float)Global::SCREEN_HEIGHT + 120.0f) isDead = true;
+    if (position.x < 0.0f)               { position.x = 0.0f;           velocity.x = 0.0f; }
+    if (position.x > worldW - width)      { position.x = worldW - width;  velocity.x = 0.0f; }
+
+    // Death: fell off the bottom of the world
+    if (spawnGrace <= 0.0f && position.y > worldH + 120.0f) isDead = true;
 }
 
 void Player::CheckHazards() {

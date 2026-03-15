@@ -1,0 +1,179 @@
+{
+  "name": "Level 02 — Stone Pass",
+  "bounds":  { "width": 3200, "height": 1440 },
+  "spawn":   { "x": 96.0, "y": 1230.0 },
+
+  "objects": [
+
+    { "comment": "=== ZONE 1: Opener — short and high jump tutorial ===",
+      "comment2": "A staircase of platforms rising left to right. First gap is jumpable",
+      "comment3": "with a normal jump, second requires holding the button for full height." },
+
+    { "comment": "ground slab — zone 1",
+      "type": "solid", "x": 0, "y": 1280, "width": 800, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "left boundary cliff",
+      "type": "solid", "x": 0, "y": 0, "width": 32, "height": 1280,
+      "color": [70, 58, 48, 255] },
+
+    { "comment": "rocky ceiling zone 1 — keeps player from flying over everything",
+      "type": "solid", "x": 0, "y": 0, "width": 800, "height": 24,
+      "color": [60, 50, 42, 255] },
+
+    { "comment": "low step — reachable with a short hop",
+      "type": "solid", "x": 200, "y": 1184, "width": 120, "height": 96,
+      "color": [95, 78, 62, 255] },
+
+    { "comment": "mid step — reachable with a short hop from low step",
+      "type": "solid", "x": 380, "y": 1104, "width": 120, "height": 176,
+      "color": [95, 78, 62, 255] },
+
+    { "comment": "high ledge — requires a FULL held jump from mid step",
+      "type": "solid", "x": 560, "y": 984, "width": 140, "height": 296,
+      "color": [95, 78, 62, 255] },
+
+    { "comment": "spike pit between mid and high — punishes short jump attempt",
+      "type": "hazard", "x": 502, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike pit",
+      "type": "hazard", "x": 530, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+
+    { "comment": "=== ZONE 2: Dash corridor ===",
+      "comment2": "A flat corridor with three gaps. Each gap is too wide for a normal",
+      "comment3": "run-jump but exactly right for dash + jump." },
+
+    { "comment": "corridor ground left",
+      "type": "solid", "x": 700, "y": 1280, "width": 140, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "corridor ground mid-left",
+      "type": "solid", "x": 940, "y": 1280, "width": 140, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "corridor ground mid-right",
+      "type": "solid", "x": 1180, "y": 1280, "width": 140, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "corridor ground right",
+      "type": "solid", "x": 1420, "y": 1280, "width": 180, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "low ceiling over corridor — forces player to stay low (no arc jump bypass)",
+      "type": "solid", "x": 700, "y": 0, "width": 900, "height": 880,
+      "color": [60, 50, 42, 255] },
+
+    { "comment": "spike pits in each gap — visual hint to dash",
+      "type": "hazard", "x": 842, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 870, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 898, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1082, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1110, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1138, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1322, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1350, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spike",
+      "type": "hazard", "x": 1378, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+
+    { "comment": "=== ZONE 3: Wall jump shaft ===",
+      "comment2": "A tall narrow shaft with two walls close together. Player must",
+      "comment3": "alternate wall jumps to climb. Exit at the top leads right." },
+
+    { "comment": "shaft left wall",
+      "type": "solid", "x": 1600, "y": 400, "width": 80, "height": 780,
+      "color": [75, 63, 52, 255] },
+
+    { "comment": "shaft right wall",
+      "type": "solid", "x": 1776, "y": 400, "width": 80, "height": 880,
+      "color": [75, 63, 52, 255] },
+
+    { "comment": "shaft floor — connects from dash corridor",
+      "type": "solid", "x": 1600, "y": 1280, "width": 256, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "exit ledge from shaft — leads into the arena",
+      "type": "solid", "x": 1856, "y": 424, "width": 280, "height": 40,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "ramp down from shaft exit to arena floor",
+      "type": "solid", "x": 1856, "y": 464, "width": 280, "height": 816,
+      "color": [80, 67, 55, 255] },
+
+    { "comment": "=== ZONE 4: Arena ===",
+      "comment2": "Wide open floor with solid walls on both sides.",
+      "comment3": "One enemy patrols in front of the key." },
+
+    { "comment": "arena floor",
+      "type": "solid", "x": 2136, "y": 1280, "width": 960, "height": 160,
+      "color": [85, 72, 60, 255] },
+
+    { "comment": "arena right wall / boundary",
+      "type": "solid", "x": 3072, "y": 0, "width": 32, "height": 1280,
+      "color": [70, 58, 48, 255] },
+
+    { "comment": "arena ceiling — keeps flyer honest",
+      "type": "solid", "x": 2136, "y": 0, "width": 960, "height": 24,
+      "color": [60, 50, 42, 255] },
+
+    { "comment": "rocky plinth the key sits on — player must hop up",
+      "type": "solid", "x": 2800, "y": 1168, "width": 200, "height": 112,
+      "color": [95, 78, 62, 255] },
+
+    { "comment": "arena elevated platform — optional cover from patrol",
+      "type": "one_sided", "x": 2250, "y": 1040, "width": 260, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "small rocky outcrop for arena variety",
+      "type": "solid", "x": 2500, "y": 1184, "width": 96, "height": 96,
+      "color": [90, 75, 60, 255] },
+
+    { "comment": "wall spikes on arena right side — discourage hugging wall",
+      "type": "hazard", "x": 3044, "y": 1100, "width": 26, "height": 26,
+      "damage": 1, "facing": "left" },
+    { "comment": "wall spike",
+      "type": "hazard", "x": 3044, "y": 1140, "width": 26, "height": 26,
+      "damage": 1, "facing": "left" },
+    { "comment": "wall spike",
+      "type": "hazard", "x": 3044, "y": 1180, "width": 26, "height": 26,
+      "damage": 1, "facing": "left" },
+
+    { "comment": "exit gate — on top of the plinth beside the key",
+      "type": "gate", "id": "gate_exit",
+      "x": 2974, "y": 1072, "width": 48, "height": 96,
+      "key_id": "stone_key",
+      "is_exit": true,
+      "color": [180, 130, 20, 255] }
+  ],
+
+  "items": [
+    { "comment": "key on top of the plinth — guarded by the arena patrol",
+      "type": "key", "id": "stone_key",
+      "x": 2860, "y": 1136,
+      "color": [220, 170, 30, 255] }
+  ],
+
+  "enemies": [
+    { "comment": "arena patrol — walks between the plinth and the outcrop",
+      "type": "thrower",
+      "x": 2560, "y": 1232,
+      "patrol_left": 2200, "patrol_right": 2790,
+      "speed": 100, "hp": 3, "damage": 1 }
+  ]
+}

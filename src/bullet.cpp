@@ -43,9 +43,11 @@ bool BulletPool::Update(float dt, Rectangle playerBounds, int& enemyBulletsHit) 
 
         if (b.timeLeft <= 0.0f) { b.active = false; continue; }
 
-        // Screen bounds
-        if (b.position.x < -BULLET_RADIUS || b.position.x > Global::SCREEN_WIDTH  + BULLET_RADIUS ||
-            b.position.y < -BULLET_RADIUS || b.position.y > Global::SCREEN_HEIGHT + BULLET_RADIUS)
+        // Out-of-world bounds (world space, not screen space)
+        const float worldW = level.IsLoaded() ? level.GetWorldSize().x : 99999.0f;
+        const float worldH = level.IsLoaded() ? level.GetWorldSize().y : 99999.0f;
+        if (b.position.x < -BULLET_RADIUS || b.position.x > worldW + BULLET_RADIUS ||
+            b.position.y < -BULLET_RADIUS || b.position.y > worldH + BULLET_RADIUS)
         { b.active = false; continue; }
 
         // Level geometry

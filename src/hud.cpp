@@ -4,50 +4,68 @@
 #include <level.hpp>
 #include <raylib.h>
 
+// All positions and sizes defined in design-space (1280x720).
+// Global::DS() converts them to actual screen pixels at runtime.
+
 void DrawHUD() {
-    // --- Health hearts ---
-    constexpr int HW = 18, HH = 16, HPad = 4, HX = 10, HY = 10;
+    const float s  = Global::scale;
+    const float lx = Global::letterboxX;
+    const float ly = Global::letterboxY;
+
+    // Helper: design-space rect -> screen rect
+    auto R = [&](float x, float y, float w, float h) -> Rectangle {
+        return { lx + x*s, ly + y*s, w*s, h*s };
+    };
+    // Design-space int position -> screen int
+    auto X = [&](float x) -> int { return (int)(lx + x*s); };
+    auto Y = [&](float y) -> int { return (int)(ly + y*s); };
+    auto FS= [&](int fs)  -> int { return (int)(fs * s);   }; // font size
+
+    // --- Health hearts (top-left) ---
+    const float HW=22, HH=20, HPad=5, HX=12, HY=12;
     for (int i = 0; i < player.GetMaxHp(); i++) {
-        Color c = (i < player.GetHp()) ? Color{220,50,50,255} : Color{80,30,30,180};
-        DrawRectangle(HX + i*(HW+HPad), HY, HW, HH, c);
-        DrawRectangleLinesEx({(float)(HX + i*(HW+HPad)),(float)HY,(float)HW,(float)HH}, 1, {0,0,0,100});
+        Color c = (i < player.GetHp()) ? Color{220,50,50,255} : Color{60,20,20,180};
+        DrawRectangleRec(R(HX + i*(HW+HPad), HY, HW, HH), c);
+        DrawRectangleLinesEx(R(HX + i*(HW+HPad), HY, HW, HH), 1.0f, {0,0,0,100});
     }
 
-    // --- Ammo display ---
-    constexpr int AW=8, AH=14, APad=3, AX=10, AY=34;
+    // --- Ammo (below hearts) ---
+    const float AW=10, AH=18, APad=4, AX=12, AY=40;
     if (player.IsReloading()) {
-        float pct  = player.GetReloadProgress();
-        DrawRectangle(AX, AY, (int)(60*pct), 6, ORANGE);
-        DrawRectangleLinesEx({(float)AX,(float)AY,60,6}, 1, {0,0,0,80});
-        DrawText("RELOAD", AX, AY+8, 10, ORANGE);
+        float pct = player.GetReloadProgress();
+        DrawRectangleRec(R(AX, AY, 72*pct, 8), ORANGE);
+        DrawRectangleLinesEx(R(AX, AY, 72, 8), 1.0f, {0,0,0,80});
+        DrawText("RELOAD", X(AX), Y(AY+10), FS(12), ORANGE);
     } else {
         int ammo = player.GetAmmo(), max = player.GetMaxAmmo();
         for (int i = 0; i < max; i++) {
             Color c = (i < ammo) ? Color{255,220,50,255} : Color{60,60,40,180};
-            DrawRectangle(AX + i*(AW+APad), AY, AW, AH, c);
+            DrawRectangleRec(R(AX + i*(AW+APad), AY, AW, AH), c);
         }
     }
 
-    // --- Dash cooldown ---
+    // --- Dash cooldown bar ---
     float dashPct = player.GetDashCooldownPct();
     if (dashPct < 1.0f) {
-        DrawRectangle(10, 58, (int)(50*dashPct), 4, SKYBLUE);
-        DrawRectangleLinesEx({10,58,50,4}, 1, {0,0,0,60});
+        DrawRectangleRec(R(12, 66, 64*dashPct, 5), SKYBLUE);
+        DrawRectangleLinesEx(R(12, 66, 64, 5), 1.0f, {0,0,0,60});
     }
 
-    // --- Inventory (key icons) ---
-    int ix = Global::SCREEN_WIDTH - 10;
+    // --- Inventory keys (top-right) ---
+    float ix = Global::DESIGN_W - 14;
     for (const auto& item : Global::gameData.inventory) {
-        ix -= 18;
-        DrawRectangle(ix, 10, 14, 14, {220,170,30,255});
-        DrawText("K", ix+3, 11, 10, WHITE);
+        ix -= 22;
+        DrawRectangleRec(R(ix, 12, 18, 18), {220,170,30,255});
+        DrawText("K", X(ix+4), Y(14), FS(11), WHITE);
     }
 
-    // --- Level name ---
+    // --- Level name (top-centre) ---
     if (level.IsLoaded()) {
         const char* name = level.GetName().c_str();
+        int fs = FS(15);
+        int tw = MeasureText(name, fs);
         DrawText(name,
-            Global::SCREEN_WIDTH/2 - MeasureText(name, 14)/2,
-            6, 14, {200,200,200,180});
+            (int)(lx + (Global::DESIGN_W * s) * 0.5f - tw * 0.5f),
+            Y(7), fs, {200,200,200,200});
     }
 }

@@ -21,13 +21,17 @@ public:
 
     // Geometry
     Vector2 GunBarrelTip() const;
-    float   GetAimAngle()  const { return aimAngle; }
+    float   GetAimAngle()   const { return aimAngle;   }
+    Vector2 GetPosition()   const { return position;   }
+    float   GetVelocityX()  const { return velocity.x; }
+    bool    IsFacingLeft()  const { return facingLeft;  }
 
     // State
-    bool IsDead()  const { return isDead;  }
-    int  GetHp()   const { return hp;      }
-    int  GetMaxHp()const { return MAX_HP;  }
-    int  GetAmmo() const { return ammo;    }
+    bool IsDead()  const { return isDead;   }
+    bool HasWon()  const { return wonLevel; }
+    int  GetHp()   const { return hp;       }
+    int  GetMaxHp()const { return MAX_HP;   }
+    int  GetAmmo() const { return ammo;     }
     int  GetMaxAmmo() const { return MAX_AMMO; }
     bool IsReloading()  const { return reloadTimer > 0.0f; }
     float GetReloadProgress()   const { return 1.0f - (reloadTimer / RELOAD_TIME); }
@@ -40,8 +44,11 @@ public:
     // Apply damage from outside (enemies, hazards)
     void TakeDamage(int amount);
 
-    // Collect inventory items
+    // Collect inventory items (called by game_state after level.CollectItems)
     void CollectItems(const std::vector<std::string>& ids);
+
+    // Override spawn position (called after level loads)
+    void SetPosition(Vector2 pos) { position = pos; }
 
 private:
     // ---- Transform ----
@@ -59,10 +66,12 @@ private:
     // ---- Physics ----
     float moveSpeed = 220.0f;
     float fallSpeed = 900.0f;
-    bool  onGround        = false;
-    bool  touchingWallLeft  = false;
-    bool  touchingWallRight = false;
-    bool  isDead = false;
+    bool  onGround           = false;
+    bool  touchingWallLeft   = false;
+    bool  touchingWallRight  = false;
+    bool  isDead      = false;
+    bool  wonLevel    = false;
+    float spawnGrace  = 0.5f; // seconds of full invincibility after spawn
 
     // ---- Health ----
     static constexpr int   MAX_HP       = 5;

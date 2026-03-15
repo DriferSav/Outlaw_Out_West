@@ -16,17 +16,27 @@ bool LoadConfig(const std::string& path) {
             c.musicVolume  = d["audio"].value("music_volume",  0.7f);
             c.sfxVolume    = d["audio"].value("sfx_volume",    1.0f);
         }
+        if (d.contains("window")) {
+            c.windowWidth  = d["window"].value("width",  1280);
+            c.windowHeight = d["window"].value("height",  720);
+        }
         return true;
     } catch (...) { return false; }
 }
 
 bool SaveConfig(const std::string& path) {
     auto& c = Global::config;
-    json d = { {"audio", {
-        {"master_volume", c.masterVolume},
-        {"music_volume",  c.musicVolume},
-        {"sfx_volume",    c.sfxVolume}
-    }}};
+    json d = {
+        {"audio", {
+            {"master_volume", c.masterVolume},
+            {"music_volume",  c.musicVolume},
+            {"sfx_volume",    c.sfxVolume}
+        }},
+        {"window", {
+            {"width",  c.windowWidth},
+            {"height", c.windowHeight}
+        }}
+    };
     std::ofstream f(path);
     if (!f.is_open()) return false;
     f << d.dump(2);

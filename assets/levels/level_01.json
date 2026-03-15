@@ -1,36 +1,232 @@
 {
   "name": "Level 01 — The Gulch",
-  "spawn": { "x": 60.0, "y": 340.0 },
+  "bounds":  { "width": 3840, "height": 1440 },
+  "spawn":   { "x": 96.0, "y": 1150.0 },
 
   "objects": [
-    { "type": "solid",     "x": 0,   "y": 400, "width": 800, "height": 50,  "color": [100, 75, 50, 255] },
-    { "type": "solid",     "x": 0,   "y": 0,   "width": 20,  "height": 400, "color": [80,  60, 40, 255] },
-    { "type": "solid",     "x": 780, "y": 0,   "width": 20,  "height": 400, "color": [80,  60, 40, 255] },
-    { "type": "one_sided", "x": 80,  "y": 320, "width": 140, "height": 12,  "color": [80, 110, 55, 255] },
-    { "type": "one_sided", "x": 320, "y": 280, "width": 160, "height": 12,  "color": [80, 110, 55, 255] },
-    { "type": "one_sided", "x": 560, "y": 240, "width": 140, "height": 12,  "color": [80, 110, 55, 255] },
-    { "type": "solid",     "x": 200, "y": 340, "width": 80,  "height": 60,  "color": [90,  70, 50, 255] },
-    { "type": "stair",     "x": 440, "y": 320, "width": 120, "height": 80,  "color": [90,  70, 50, 255], "facing": "right" },
-    { "type": "hostile",   "x": 300, "y": 390, "width": 60,  "height": 10,  "damage": 1, "texture": "lava",  "color": [220, 70, 20, 255] },
-    { "type": "hazard",    "x": 450, "y": 388, "width": 16,  "height": 16,  "damage": 1, "facing": "up",    "texture": "spike" },
-    { "type": "hazard",    "x": 474, "y": 388, "width": 16,  "height": 16,  "damage": 1, "facing": "up",    "texture": "spike" },
-    { "type": "gate",      "id": "gate_exit", "x": 740, "y": 340, "width": 20, "height": 60, "key_id": "bronze_key", "color": [180, 130, 20, 255] }
+
+    { "comment": "=== SECTION 1: The Gulch entrance (x 0–1280) ===",
+      "type": "solid", "x": 0, "y": 1280, "width": 1280, "height": 160,
+      "color": [100, 75, 50, 255] },
+
+    { "comment": "left boundary wall",
+      "type": "solid", "x": 0, "y": 0, "width": 32, "height": 1280,
+      "color": [70, 50, 35, 255] },
+
+    { "comment": "section 1 ceiling — seals the top of the starting zone",
+      "type": "solid", "x": 0, "y": 0, "width": 1280, "height": 24,
+      "color": [60, 45, 30, 255] },
+
+    { "comment": "low platform left",
+      "type": "one_sided", "x": 128, "y": 1120, "width": 224, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "mid platform",
+      "type": "one_sided", "x": 480, "y": 1040, "width": 256, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "high platform near transition",
+      "type": "one_sided", "x": 880, "y": 960, "width": 224, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "ground block left",
+      "type": "solid", "x": 320, "y": 1184, "width": 128, "height": 96,
+      "color": [90, 70, 50, 255] },
+
+    { "comment": "ground block right",
+      "type": "solid", "x": 640, "y": 1184, "width": 224, "height": 96,
+      "color": [90, 70, 50, 255] },
+
+    { "comment": "spikes",
+      "type": "hazard", "x": 480, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spikes",
+      "type": "hazard", "x": 518, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "spikes",
+      "type": "hazard", "x": 556, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+
+    { "comment": "=== SECTION 2: The Canyon (x 1280–2560) — tall, vertical exploration ===",
+      "type": "solid", "x": 1280, "y": 1280, "width": 1280, "height": 160,
+      "color": [85, 60, 40, 255] },
+
+    { "comment": "canyon ceiling — forces navigation through lower paths",
+      "type": "solid", "x": 1280, "y": 0, "width": 1280, "height": 24,
+      "color": [60, 45, 30, 255] },
+
+    { "comment": "tall canyon left wall — creates a chasm",
+      "type": "solid", "x": 1280, "y": 24, "width": 64, "height": 800,
+      "color": [70, 50, 35, 255] },
+
+    { "comment": "canyon right pillar",
+      "type": "solid", "x": 2176, "y": 24, "width": 64, "height": 640,
+      "color": [70, 50, 35, 255] },
+
+    { "comment": "upper bridge — rewards vertical exploration",
+      "type": "solid", "x": 1344, "y": 640, "width": 832, "height": 32,
+      "color": [90, 70, 50, 255] },
+
+    { "comment": "bridge underside gap — spikes below",
+      "type": "hazard", "x": 1440, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "bridge spikes",
+      "type": "hazard", "x": 1478, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "bridge spikes",
+      "type": "hazard", "x": 1516, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+
+    { "comment": "mid-canyon shelf left",
+      "type": "one_sided", "x": 1344, "y": 960, "width": 192, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "mid-canyon shelf right",
+      "type": "one_sided", "x": 1920, "y": 880, "width": 192, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "high canyon ledge",
+      "type": "one_sided", "x": 1600, "y": 740, "width": 320, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "mid canyon block",
+      "type": "solid", "x": 1700, "y": 1150, "width": 160, "height": 130,
+      "color": [90, 70, 50, 255] },
+
+    { "comment": "canyon right ground block",
+      "type": "solid", "x": 2250, "y": 1150, "width": 200, "height": 130,
+      "color": [90, 70, 50, 255] },
+
+    { "comment": "=== SECTION 3: The Outpost (x 2560–3840) — elevated fortress ===",
+      "type": "solid", "x": 2560, "y": 1280, "width": 1280, "height": 160,
+      "color": [75, 55, 35, 255] },
+
+    { "comment": "outpost ceiling",
+      "type": "solid", "x": 2560, "y": 0, "width": 1280, "height": 24,
+      "color": [60, 45, 30, 255] },
+
+    { "comment": "right boundary wall",
+      "type": "solid", "x": 3808, "y": 0, "width": 32, "height": 1280,
+      "color": [70, 50, 35, 255] },
+
+    { "comment": "outpost lower walkway",
+      "type": "solid", "x": 2560, "y": 1088, "width": 384, "height": 32,
+      "color": [95, 75, 55, 255] },
+
+    { "comment": "outpost mid platform",
+      "type": "one_sided", "x": 2640, "y": 960, "width": 256, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "outpost high platform",
+      "type": "one_sided", "x": 2960, "y": 864, "width": 256, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "outpost very high platform — key is up here",
+      "type": "one_sided", "x": 3200, "y": 720, "width": 320, "height": 20,
+      "color": [80, 110, 55, 255] },
+
+    { "comment": "outpost fortress wall left",
+      "type": "solid", "x": 3520, "y": 992, "width": 48, "height": 288,
+      "color": [90, 65, 45, 255] },
+
+    { "comment": "outpost fortress wall right",
+      "type": "solid", "x": 3712, "y": 992, "width": 48, "height": 288,
+      "color": [90, 65, 45, 255] },
+
+    { "comment": "outpost fortress top span",
+      "type": "solid", "x": 3520, "y": 992, "width": 240, "height": 32,
+      "color": [90, 65, 45, 255] },
+
+    { "comment": "gate platform — raised step so player must jump to reach gate",
+      "type": "solid", "x": 3568, "y": 1120, "width": 144, "height": 160,
+      "color": [90, 65, 45, 255] },
+
+    { "comment": "outpost hazard pit",
+      "type": "hazard", "x": 3456, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+    { "comment": "outpost hazard pit",
+      "type": "hazard", "x": 3494, "y": 1262, "width": 26, "height": 26,
+      "damage": 1, "facing": "up" },
+
+    { "comment": "exit gate — on top of the raised platform in the fortress",
+      "type": "gate", "id": "gate_exit",
+      "x": 3616, "y": 1024, "width": 48, "height": 96,
+      "key_id": "bronze_key", "is_exit": true,
+      "color": [180, 130, 20, 255] }
   ],
 
   "items": [
-    { "type": "key", "id": "bronze_key", "x": 90, "y": 300, "color": [220, 170, 30, 255] }
+    { "comment": "key hidden on the highest outpost platform",
+      "type": "key", "id": "bronze_key",
+      "x": 3300, "y": 688, "color": [220, 170, 30, 255] }
   ],
 
   "enemies": [
-    { "type": "patrol",  "x": 220, "y": 368, "patrol_left": 210, "patrol_right": 370, "speed": 70,  "hp": 2, "damage": 1 },
-    { "type": "jumper",  "x": 400, "y": 368, "jump_interval": 2.5, "jump_force": 360, "hp": 2, "damage": 1 },
-    { "type": "thrower", "x": 620, "y": 368, "throw_interval": 3.0, "projectile_speed": 160, "arc_height": 90, "hp": 3, "damage": 1, "facing": "left" },
-    { "type": "flyer",   "x": 300, "y": 180, "speed": 65, "hp": 2, "damage": 1,
+    { "comment": "section 1 patrol",
+      "type": "patrol",
+      "x": 352, "y": 1232, "patrol_left": 336, "patrol_right": 600,
+      "speed": 90, "hp": 2, "damage": 1 },
+
+    { "comment": "section 1 jumper",
+      "type": "jumper",
+      "x": 700, "y": 1232, "jump_interval": 2.5, "jump_force": 440,
+      "hp": 2, "damage": 1 },
+
+    { "comment": "section 1 flyer — patrols the upper area",
+      "type": "flyer",
+      "x": 500, "y": 700, "speed": 110, "hp": 2, "damage": 1,
       "path": [
-        { "x": 200, "y": 180 },
-        { "x": 500, "y": 140 },
-        { "x": 600, "y": 220 },
-        { "x": 350, "y": 200 }
+        { "x": 200,  "y": 700 },
+        { "x": 900,  "y": 600 },
+        { "x": 1100, "y": 720 },
+        { "x": 500,  "y": 800 }
+      ]
+    },
+
+    { "comment": "canyon patrol on bridge",
+      "type": "patrol",
+      "x": 1400, "y": 592, "patrol_left": 1344, "patrol_right": 2160,
+      "speed": 100, "hp": 2, "damage": 1 },
+
+    { "comment": "canyon thrower — stands on right block",
+      "type": "thrower",
+      "x": 2300, "y": 1102, "throw_interval": 2.5, "projectile_speed": 220,
+      "arc_height": 180, "hp": 3, "damage": 1 },
+
+    { "comment": "canyon flyer",
+      "type": "flyer",
+      "x": 1800, "y": 500, "speed": 120, "hp": 2, "damage": 1,
+      "path": [
+        { "x": 1400, "y": 400 },
+        { "x": 2200, "y": 300 },
+        { "x": 2400, "y": 500 },
+        { "x": 1600, "y": 550 }
+      ]
+    },
+
+    { "comment": "outpost patrol on walkway",
+      "type": "patrol",
+      "x": 2600, "y": 1040, "patrol_left": 2560, "patrol_right": 2940,
+      "speed": 95, "hp": 2, "damage": 1 },
+
+    { "comment": "outpost jumper",
+      "type": "jumper",
+      "x": 3050, "y": 1232, "jump_interval": 2.0, "jump_force": 460,
+      "hp": 3, "damage": 1 },
+
+    { "comment": "outpost thrower — guards the gate approach",
+      "type": "thrower",
+      "x": 3680, "y": 1232, "throw_interval": 2.8, "projectile_speed": 200,
+      "arc_height": 160, "hp": 3, "damage": 1 },
+
+    { "comment": "outpost flyer — patrols the upper fortress",
+      "type": "flyer",
+      "x": 3000, "y": 500, "speed": 130, "hp": 2, "damage": 1,
+      "path": [
+        { "x": 2700, "y": 500 },
+        { "x": 3400, "y": 400 },
+        { "x": 3700, "y": 600 },
+        { "x": 3100, "y": 650 }
       ]
     }
   ]

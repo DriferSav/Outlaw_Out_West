@@ -7,51 +7,72 @@
 #include <bullet.hpp>
 #include <enemy.hpp>
 #include <hud.hpp>
+#include <camera.hpp>
 #include <player.hpp>
 #include <cmath>
+#include <algorithm>
 
 // ---------------------------------------------------------------------------
-// Simple menu cursor helper — shared between MENU and PAUSE
+// UI helpers — all positions in design space (1280x720),
+// converted to screen pixels via Global::scale + letterbox offset
 // ---------------------------------------------------------------------------
 namespace {
-    // Move an int index with UP/DOWN, wrap around itemCount
+    // Scale a design-space X to screen X (int)
+    inline int SX(float x) { return (int)(Global::letterboxX + x * Global::scale); }
+    inline int SY(float y) { return (int)(Global::letterboxY + y * Global::scale); }
+    inline int SF(int  fs) { return (int)(fs  * Global::scale); }
+    inline int SW(float w) { return (int)(w   * Global::scale); }
+
+    // Horizontally centre text given design-space centreX
+    inline int CentreText(float designCX, const char* text, int fontSize) {
+        return SX(designCX) - MeasureText(text, fontSize) / 2;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Menu cursor navigation
+    // ---------------------------------------------------------------------------
     int MoveCursor(int cur, int itemCount) {
-        if (input.IsPressed(Action::MOVE_UP)   ||
-            (input.GetLeftStick().y < -0.5f && input.IsPressed(Action::MOVE_UP)))
+        if (input.IsPressed(Action::MOVE_UP))
             cur = (cur - 1 + itemCount) % itemCount;
-        if (input.IsPressed(Action::MOVE_DOWN) ||
-            (input.GetLeftStick().y >  0.5f && input.IsPressed(Action::MOVE_DOWN)))
+        if (input.IsPressed(Action::MOVE_DOWN))
             cur = (cur + 1) % itemCount;
         return cur;
     }
 
-    // Draw a vertical list of options, highlighting selectedIdx
     void DrawMenuList(const char** items, int count, int selected,
-                      int cx, int startY, int spacing, int fontSize)
+                      float designCX, float designStartY,
+                      float designSpacing, int designFontSize)
     {
         for (int i = 0; i < count; i++) {
-            Color c = (i == selected) ? GOLD : Color{200,200,200,220};
-            int   w = MeasureText(items[i], fontSize);
-            DrawText(items[i], cx - w/2, startY + i*spacing, fontSize, c);
-            if (i == selected) {
-                DrawText(">", cx - w/2 - 20, startY + i*spacing, fontSize, GOLD);
-            }
+            int fs   = SF(designFontSize);
+            Color c  = (i == selected) ? GOLD : Color{200,200,200,220};
+            int   tw = MeasureText(items[i], fs);
+            int   tx = SX(designCX) - tw/2;
+            int   ty = SY(designStartY + i * designSpacing);
+            DrawText(items[i], tx, ty, fs, c);
+            if (i == selected)
+                DrawText(">", tx - SW(22), ty, fs, GOLD);
         }
     }
 
-    int menuCursor  = 0; // MENU selected item
-    int pauseCursor = 0; // PAUSE selected item
-    int optCursor   = 0; // OPTIONS selected item
+    // ---------------------------------------------------------------------------
+    // Shared state
+    // ---------------------------------------------------------------------------
+    int menuCursor  = 0;
+    int pauseCursor = 0;
+    int optCursor   = 0;
 
     void StartPlaying() {
         bulletPool.Clear();
         enemyManager.Clear();
-        level.Load("assets/levels/level_01.json");
+        level.Load("assets/levels/showcase_level.json");
         player = Player();
-        // Use spawn from level
-        // (Player constructor sets default; level overrides via GetSpawn)
+        player.SetPosition(level.GetSpawn());
         enemyManager.SpawnFromLevel();
         Global::gameData = Global::GameData{};
+        Vector2 ws = level.GetWorldSize();
+        gameCamera.SetBounds(ws.x, ws.y);
+        gameCamera.Reset();
     }
 }
 
@@ -64,25 +85,40 @@ void updateGameState(Global::GameState& state) {
         case Global::GameState::OPTIONS:   updateOptions (state); break;
         case Global::GameState::PLAYING:   updatePlaying (state); break;
         case Global::GameState::PAUSED:    updatePaused  (state); break;
+        case Global::GameState::WIN:       updateWin     (state); break;
         case Global::GameState::GAME_OVER: updateGameOver(state); break;
     }
 }
 
 void drawGameState(const Global::GameState& state) {
     BeginDrawing();
+
+    // Letterbox bars (fill areas outside the design viewport)
+    if (Global::letterboxX > 0) {
+        DrawRectangle(0, 0, (int)Global::letterboxX, Global::SCREEN_HEIGHT, BLACK);
+        DrawRectangle(Global::SCREEN_WIDTH - (int)Global::letterboxX, 0,
+                      (int)Global::letterboxX + 1, Global::SCREEN_HEIGHT, BLACK);
+    }
+    if (Global::letterboxY > 0) {
+        DrawRectangle(0, 0, Global::SCREEN_WIDTH, (int)Global::letterboxY, BLACK);
+        DrawRectangle(0, Global::SCREEN_HEIGHT - (int)Global::letterboxY,
+                      Global::SCREEN_WIDTH, (int)Global::letterboxY + 1, BLACK);
+    }
+
     switch (state) {
         case Global::GameState::MENU:      drawMenu();     break;
         case Global::GameState::OPTIONS:   drawOptions();  break;
         case Global::GameState::PLAYING:   drawPlaying();  break;
         case Global::GameState::PAUSED:    drawPaused();   break;
+        case Global::GameState::WIN:       drawWin();      break;
         case Global::GameState::GAME_OVER: drawGameOver(); break;
     }
+
     EndDrawing();
 }
 
 // ---------------------------------------------------------------------------
-// MENU
-// Items: Play | Load | Options | Exit
+// MENU  —  Play | Load | Options | Exit
 // ---------------------------------------------------------------------------
 static const char* MENU_ITEMS[] = { "Play", "Load", "Options", "Exit" };
 static constexpr int MENU_COUNT = 4;
@@ -92,60 +128,52 @@ void updateMenu(Global::GameState& state) {
     if (input.IsPressed(Action::ENTER)) {
         switch (menuCursor) {
             case 0: StartPlaying(); state = Global::GameState::PLAYING; break;
-            case 1: /* TODO: open file picker / slot select */ break;
+            case 1: break; // TODO: load save
             case 2:
                 Global::previousGameState = Global::GameState::MENU;
                 state = Global::GameState::OPTIONS;
                 break;
-            case 3: CloseWindow(); break;
+            case 3: Global::shouldExit = true; break;
         }
     }
 }
 
 void drawMenu() {
     ClearBackground(BLACK);
-    // Title
     const char* title = "Outlaw Out West";
-    DrawText(title,
-        Global::SCREEN_WIDTH/2 - MeasureText(title, 36)/2,
-        Global::SCREEN_HEIGHT/2 - 100, 36, GOLD);
-
+    int tfs = SF(52);
+    DrawText(title, CentreText(640, title, tfs), SY(160), tfs, GOLD);
     DrawMenuList(MENU_ITEMS, MENU_COUNT, menuCursor,
-        Global::SCREEN_WIDTH/2,
-        Global::SCREEN_HEIGHT/2 - 20, 36, 22);
-
-    // Controls hint
-    DrawText("Arrow keys / D-pad to navigate   Enter / A to select",
-        Global::SCREEN_WIDTH/2 - MeasureText("Arrow keys / D-pad to navigate   Enter / A to select", 12)/2,
-        Global::SCREEN_HEIGHT - 20, 12, DARKGRAY);
+        640, 300, 52, 28);
+    const char* hint = "Arrow keys / D-pad to navigate   Enter / A to select";
+    int hfs = SF(14);
+    DrawText(hint, CentreText(640, hint, hfs), SY(694), hfs, DARKGRAY);
 }
 
 // ---------------------------------------------------------------------------
 // OPTIONS
-// Items: Master Vol | Music Vol | SFX Vol | Back
 // ---------------------------------------------------------------------------
-static const char* OPT_ITEMS[] = {
-    "Master Volume", "Music Volume", "SFX Volume", "Back"
-};
+static const char* OPT_ITEMS[] = { "Master Volume", "Music Volume", "SFX Volume", "Back" };
 static constexpr int OPT_COUNT = 4;
 
-static void DrawVolumeSlider(const char* label, float value, int cx, int y) {
-    DrawText(label, cx - 140, y, 18, WHITE);
-    DrawRectangle(cx - 10, y + 4, 120, 10, DARKGRAY);
-    DrawRectangle(cx - 10, y + 4, (int)(120 * value), 10, GOLD);
-    DrawRectangleLinesEx({(float)(cx-10),(float)(y+4),120,10}, 1, GRAY);
+static void DrawVolumeSlider(const char* label, float value,
+                              float designCX, float designY) {
+    int lfs = SF(20);
+    DrawText(label, SX(designCX - 180), SY(designY), lfs, WHITE);
+    float barW = 160, barH = 14;
+    DrawRectangle(SX(designCX - 10), SY(designY + 6),
+                  SW(barW * value), SW(barH), GOLD);
+    DrawRectangleLinesEx({ (float)SX(designCX-10), (float)SY(designY+6),
+                           (float)SW(barW), (float)SW(barH) }, 1, GRAY);
 }
 
 void updateOptions(Global::GameState& state) {
     optCursor = MoveCursor(optCursor, OPT_COUNT);
-
-    // LEFT/RIGHT (or stick X) adjusts sliders
     float delta = 0.0f;
     if (input.IsPressed(Action::MOVE_LEFT))  delta = -0.05f;
     if (input.IsPressed(Action::MOVE_RIGHT)) delta =  0.05f;
     const float sx = input.GetLeftStick().x;
     if (fabsf(sx) > 0.3f) delta = sx * 0.02f;
-
     auto& c = Global::config;
     if (delta != 0.0f) {
         switch (optCursor) {
@@ -155,40 +183,32 @@ void updateOptions(Global::GameState& state) {
         }
         SaveConfig("assets/config.json");
     }
-
-    // Back / Escape
     if (input.IsPressed(Action::PAUSE) ||
-        (optCursor == 3 && input.IsPressed(Action::ENTER))) {
+        (optCursor == 3 && input.IsPressed(Action::ENTER)))
         state = Global::previousGameState;
-    }
 }
 
 void drawOptions() {
     ClearBackground({ 15, 15, 25, 255 });
     const char* title = "Options";
-    DrawText(title,
-        Global::SCREEN_WIDTH/2 - MeasureText(title, 28)/2,
-        50, 28, GOLD);
-
+    int tfs = SF(34);
+    DrawText(title, CentreText(640, title, tfs), SY(70), tfs, GOLD);
     const auto& c = Global::config;
-    int cy = 130, cx = Global::SCREEN_WIDTH/2;
-    DrawVolumeSlider("Master Volume", c.masterVolume, cx, cy);      cy += 50;
-    DrawVolumeSlider("Music Volume",  c.musicVolume,  cx, cy);      cy += 50;
-    DrawVolumeSlider("SFX Volume",    c.sfxVolume,    cx, cy);      cy += 50;
-
-    // Highlight current slider row
-    int rowY = 130 + optCursor * 50;
-    DrawRectangle(cx - 155, rowY - 2, 280, 26, {255,255,255,18});
-
-    // Back button
+    DrawVolumeSlider("Master Volume", c.masterVolume, 640, 210);
+    DrawVolumeSlider("Music Volume",  c.musicVolume,  640, 280);
+    DrawVolumeSlider("SFX Volume",    c.sfxVolume,    640, 350);
+    // Row highlight
+    float rowY = 210 + optCursor * 70;
+    DrawRectangle(SX(460), SY(rowY - 4), SW(360), SW(36), {255,255,255,18});
+    // Back
     Color backC = (optCursor == 3) ? GOLD : Color{200,200,200,220};
-    int backW   = MeasureText("Back", 22);
-    DrawText("Back", cx - backW/2, cy + 10, 22, backC);
-    if (optCursor == 3) DrawText(">", cx - backW/2 - 20, cy + 10, 22, GOLD);
-
-    DrawText("Left/Right to adjust   ESC to go back",
-        cx - MeasureText("Left/Right to adjust   ESC to go back", 12)/2,
-        Global::SCREEN_HEIGHT - 20, 12, DARKGRAY);
+    const char* back = "Back";
+    int bfs = SF(26);
+    DrawText(back, CentreText(640, back, bfs), SY(440), bfs, backC);
+    if (optCursor == 3) DrawText(">", CentreText(640, back, bfs) - SW(22), SY(440), bfs, GOLD);
+    const char* hint = "Left/Right to adjust   ESC to go back";
+    int hfs = SF(14);
+    DrawText(hint, CentreText(640, hint, hfs), SY(694), hfs, DARKGRAY);
 }
 
 // ---------------------------------------------------------------------------
@@ -201,56 +221,42 @@ void updatePlaying(Global::GameState& state) {
         state = Global::GameState::PAUSED;
         return;
     }
-    // NOTE: player.Update() is called in main.cpp before updateGameState,
-    // but ONLY when state == PLAYING (gated in main).
     int enemyBulletsHit = 0;
-    Rectangle pb = { player.GetFrame().position.x,
-                     player.GetFrame().position.y, 32, 48 };
+    Rectangle pb = { player.GetPosition().x, player.GetPosition().y, 32.0f, 48.0f };
     bulletPool.Update(Global::deltaTime, pb, enemyBulletsHit);
     if (enemyBulletsHit > 0) player.TakeDamage(enemyBulletsHit);
-
     enemyManager.Update(Global::deltaTime);
-
-    // Check for death transition
     if (player.IsDead()) state = Global::GameState::GAME_OVER;
+    if (player.HasWon()) state = Global::GameState::WIN;
 }
 
 void drawPlaying() {
     ClearBackground({ 30, 30, 46, 255 });
+    gameCamera.BeginWorldDraw();
     level.Draw();
     bulletPool.Draw();
     enemyManager.Draw();
     player.Draw();
+    gameCamera.EndWorldDraw();
     DrawHUD();
-
 #ifdef GAME_DEBUG
-    DrawText(TextFormat("mov=%d env=%d act=%d ammo=%d/%d reload=%.1f",
-        (int)player.GetMovementState(),
-        (int)player.GetEnvironmentState(),
-        (int)player.GetInteractionState(),
-        player.GetAmmo(), player.GetMaxAmmo(),
-        player.IsReloading() ? player.GetReloadProgress() : 0.f),
-        8, Global::SCREEN_HEIGHT - 20, 12, GREEN);
+    DrawText(TextFormat("scale=%.2f  %dx%d  mov=%d",
+        Global::scale, Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT,
+        (int)player.GetMovementState()),
+        (int)Global::letterboxX + 4,
+        Global::SCREEN_HEIGHT - SF(20), SF(13), GREEN);
 #endif
 }
 
 // ---------------------------------------------------------------------------
-// PAUSED
-// Items: Resume | Options | Exit to Menu
+// PAUSED  —  Resume | Options | Exit to Menu
 // ---------------------------------------------------------------------------
 static const char* PAUSE_ITEMS[] = { "Resume", "Options", "Exit to Menu" };
 static constexpr int PAUSE_COUNT = 3;
 
 void updatePaused(Global::GameState& state) {
-    // IMPORTANT: nothing in game world updates here — pause is a true freeze
     pauseCursor = MoveCursor(pauseCursor, PAUSE_COUNT);
-
-    if (input.IsPressed(Action::PAUSE)) {
-        // ESC always resumes
-        state = Global::GameState::PLAYING;
-        return;
-    }
-
+    if (input.IsPressed(Action::PAUSE)) { state = Global::GameState::PLAYING; return; }
     if (input.IsPressed(Action::ENTER)) {
         switch (pauseCursor) {
             case 0: state = Global::GameState::PLAYING; break;
@@ -259,10 +265,7 @@ void updatePaused(Global::GameState& state) {
                 state = Global::GameState::OPTIONS;
                 break;
             case 2:
-                // Reset session and return to main menu
-                bulletPool.Clear();
-                enemyManager.Clear();
-                level.Unload();
+                bulletPool.Clear(); enemyManager.Clear(); level.Unload();
                 Global::gameData = Global::GameData{};
                 menuCursor = 0;
                 state = Global::GameState::MENU;
@@ -272,57 +275,57 @@ void updatePaused(Global::GameState& state) {
 }
 
 void drawPaused() {
-    // Draw frozen world beneath overlay
     ClearBackground({ 30, 30, 46, 255 });
-    level.Draw();
-    bulletPool.Draw();
-    enemyManager.Draw();
-    player.Draw();
+    gameCamera.BeginWorldDraw();
+    level.Draw(); bulletPool.Draw(); enemyManager.Draw(); player.Draw();
+    gameCamera.EndWorldDraw();
     DrawHUD();
-
-    // Dim overlay
     DrawRectangle(0, 0, Global::SCREEN_WIDTH, Global::SCREEN_HEIGHT, {0,0,0,150});
-
     const char* title = "Paused";
-    DrawText(title,
-        Global::SCREEN_WIDTH/2 - MeasureText(title, 30)/2,
-        Global::SCREEN_HEIGHT/2 - 80, 30, WHITE);
+    int tfs = SF(38);
+    DrawText(title, CentreText(640, title, tfs), SY(220), tfs, WHITE);
+    DrawMenuList(PAUSE_ITEMS, PAUSE_COUNT, pauseCursor, 640, 310, 52, 26);
+    const char* hint = "ESC to resume";
+    int hfs = SF(14);
+    DrawText(hint, CentreText(640, hint, hfs), SY(694), hfs, DARKGRAY);
+}
 
-    DrawMenuList(PAUSE_ITEMS, PAUSE_COUNT, pauseCursor,
-        Global::SCREEN_WIDTH/2,
-        Global::SCREEN_HEIGHT/2 - 20, 38, 22);
+// ---------------------------------------------------------------------------
+// WIN
+// ---------------------------------------------------------------------------
+void updateWin(Global::GameState& state) {
+    if (input.IsPressed(Action::ENTER)) { StartPlaying(); state = Global::GameState::PLAYING; }
+    if (input.IsPressed(Action::PAUSE)) { menuCursor = 0; state = Global::GameState::MENU;    }
+}
 
-    DrawText("ESC to resume",
-        Global::SCREEN_WIDTH/2 - MeasureText("ESC to resume", 12)/2,
-        Global::SCREEN_HEIGHT - 20, 12, DARKGRAY);
+void drawWin() {
+    ClearBackground({ 5, 15, 10, 255 });
+    const char* title = "YOU WIN!";
+    const char* sub   = "The gulch is yours, partner.";
+    const char* time  = TextFormat("Time: %.1f s", Global::gameData.playtime);
+    const char* cont  = "Enter / A  —  Play Again";
+    const char* menu  = "ESC        —  Main Menu";
+    DrawText(title, CentreText(640, title, SF(68)), SY(200), SF(68), GOLD);
+    DrawText(sub,   CentreText(640, sub,   SF(24)), SY(300), SF(24), RAYWHITE);
+    DrawText(time,  CentreText(640, time,  SF(20)), SY(345), SF(20), LIGHTGRAY);
+    DrawText(cont,  CentreText(640, cont,  SF(20)), SY(410), SF(20), LIGHTGRAY);
+    DrawText(menu,  CentreText(640, menu,  SF(20)), SY(445), SF(20), DARKGRAY);
 }
 
 // ---------------------------------------------------------------------------
 // GAME OVER
 // ---------------------------------------------------------------------------
 void updateGameOver(Global::GameState& state) {
-    if (input.IsPressed(Action::ENTER)) {
-        StartPlaying();
-        state = Global::GameState::PLAYING;
-    }
-    if (input.IsPressed(Action::PAUSE)) {
-        menuCursor = 0;
-        state = Global::GameState::MENU;
-    }
+    if (input.IsPressed(Action::ENTER)) { StartPlaying(); state = Global::GameState::PLAYING; }
+    if (input.IsPressed(Action::PAUSE)) { menuCursor = 0; state = Global::GameState::MENU;    }
 }
 
 void drawGameOver() {
     ClearBackground({ 10, 5, 5, 255 });
-    const char* title  = "YOU DIED";
-    const char* retry  = "Enter / A  —  Try Again";
-    const char* menu   = "ESC        —  Main Menu";
-    DrawText(title,
-        Global::SCREEN_WIDTH/2 - MeasureText(title, 52)/2,
-        Global::SCREEN_HEIGHT/2 - 60, 52, RED);
-    DrawText(retry,
-        Global::SCREEN_WIDTH/2 - MeasureText(retry, 18)/2,
-        Global::SCREEN_HEIGHT/2 + 20, 18, LIGHTGRAY);
-    DrawText(menu,
-        Global::SCREEN_WIDTH/2 - MeasureText(menu,  18)/2,
-        Global::SCREEN_HEIGHT/2 + 48, 18, DARKGRAY);
+    const char* title = "YOU DIED";
+    const char* retry = "Enter / A  —  Try Again";
+    const char* menu  = "ESC        —  Main Menu";
+    DrawText(title, CentreText(640, title, SF(66)), SY(240), SF(66), RED);
+    DrawText(retry, CentreText(640, retry, SF(22)), SY(360), SF(22), LIGHTGRAY);
+    DrawText(menu,  CentreText(640, menu,  SF(22)), SY(400), SF(22), DARKGRAY);
 }

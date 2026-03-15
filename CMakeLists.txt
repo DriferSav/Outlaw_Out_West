@@ -27,6 +27,7 @@ set(SOURCES
     src/enemy.cpp
     src/player.cpp
     src/hud.cpp
+    src/camera.cpp
     src/game_state.cpp
 )
 
